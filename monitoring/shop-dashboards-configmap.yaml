@@ -10,7 +10,7 @@ data:
       ],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 1,
+      "version": 2,
       "refresh": "10s",
       "time": {
         "from": "now-15m",
@@ -106,7 +106,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(rate(http_requests_total{service=\"gateway\",path=\"/checkout\",status=~\"5..\"}[1m])) / sum(rate(http_requests_total{service=\"gateway\",path=\"/checkout\"}[1m]))",
+              "expr": "(sum(rate(http_requests_total{service=\"gateway\",path=\"/checkout\",status=~\"5..\"}[1m])) or vector(0)) / sum(rate(http_requests_total{service=\"gateway\",path=\"/checkout\"}[1m]))",
               "legendFormat": "error ratio"
             }
           ]
