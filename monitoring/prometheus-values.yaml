@@ -1,5 +1,10 @@
 alertmanager:
-  enabled: false
+  enabled: true
+  persistence:
+    enabled: false
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
+    limits: {memory: 64Mi}
 kube-state-metrics:
   enabled: false
 prometheus-node-exporter:
@@ -15,3 +20,48 @@ server:
   resources:
     requests: {cpu: 100m, memory: 256Mi}
     limits: {memory: 512Mi}
+serverFiles:
+  recording_rules.yml:
+    groups:
+      - name: slo-checkout
+        rules:
+          - record: slo:checkout_error_ratio:rate2m
+            expr: |
+              (sum(rate(http_requests_total{service="gateway",path="/checkout",status=~"5.."}[2m])) or vector(0))
+              / sum(rate(http_requests_total{service="gateway",path="/checkout"}[2m]))
+          - record: slo:checkout_error_ratio:rate5m
+            expr: |
+              (sum(rate(http_requests_total{service="gateway",path="/checkout",status=~"5.."}[5m])) or vector(0))
+              / sum(rate(http_requests_total{service="gateway",path="/checkout"}[5m]))
+          - record: slo:checkout_error_ratio:rate10m
+            expr: |
+              (sum(rate(http_requests_total{service="gateway",path="/checkout",status=~"5.."}[10m])) or vector(0))
+              / sum(rate(http_requests_total{service="gateway",path="/checkout"}[10m]))
+          - record: slo:checkout_error_ratio:rate30m
+            expr: |
+              (sum(rate(http_requests_total{service="gateway",path="/checkout",status=~"5.."}[30m])) or vector(0))
+              / sum(rate(http_requests_total{service="gateway",path="/checkout"}[30m]))
+  alerting_rules.yml:
+    groups:
+      - name: slo-checkout-alerts
+        rules:
+          - alert: CheckoutErrorBudgetFastBurn
+            expr: |
+              slo:checkout_error_ratio:rate10m > (14.4 * 0.01)
+              and slo:checkout_error_ratio:rate2m > (14.4 * 0.01)
+            for: 1m
+            labels:
+              severity: page
+            annotations:
+              summary: "Checkout is burning its 30-day error budget at more than 14.4x"
+              description: "At this rate the whole monthly budget is gone in about two days. See docs/slo.md."
+          - alert: CheckoutErrorBudgetSlowBurn
+            expr: |
+              slo:checkout_error_ratio:rate30m > (6 * 0.01)
+              and slo:checkout_error_ratio:rate5m > (6 * 0.01)
+            for: 5m
+            labels:
+              severity: ticket
+            annotations:
+              summary: "Checkout is burning its 30-day error budget at more than 6x"
+              description: "Sustained elevated errors. See docs/slo.md."
