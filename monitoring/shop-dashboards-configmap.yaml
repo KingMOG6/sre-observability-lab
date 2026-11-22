@@ -10,7 +10,7 @@ data:
       ],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 2,
+      "version": 3,
       "refresh": "10s",
       "time": {
         "from": "now-15m",
@@ -314,6 +314,53 @@ data:
               },
               "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"shop\",container!=\"\"}[1m]))",
               "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Latency p95 by service",
+          "description": "If one service's p95 jumps with no 500s anywhere, suspect latency, not errors.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 24,
+            "w": 12,
+            "h": 8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0,
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 10
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket{path!~\"/health|/metrics\"}[1m])))",
+              "legendFormat": "{{service}}"
             }
           ]
         }
